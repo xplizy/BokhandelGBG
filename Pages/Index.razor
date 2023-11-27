@@ -1,0 +1,87 @@
+﻿@page "/"
+<PageTitle>Index</PageTitle>
+<style>
+    .jumbotron {
+        background-image: url('/GBGBok.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: 40%; 
+        height: 50vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+        .jumbotron h1, .jumbotron h2 {
+            text-shadow: 2px 2px #222;
+            color: white;
+            text-align: center;
+        }
+
+    .card-body {
+        border: 1px solid #ddd;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-group label {
+        font-weight: bold;
+    }
+</style>
+
+<div class="jumbotron">
+    <div class="container">
+        <h1 class="display-3"></h1>
+        <h2></h2>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2>Lägga till och ta bort böcker</h2>
+                    <p>Här kan du hantera böcker i vårt sortiment genom att lägga till nya böcker och ta bort böcker som inte längre finns i lager.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2>Flytta böcker mellan våra butiker</h2>
+                    <p>Om en bok säljer bättre på en butik kan du flytta den från en annan butik för att säkerställa att varorna alltid finns där kunderna är.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2>Lägga till och ta bort författare</h2>
+                    <p>Här kan du hantera författare och se vilka böcker som är skrivna av dem.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container">
+    <h2>Inloggning</h2>
+    <div class="card">
+        <div class="card-body">
+            <form>
+                <div class="form-group">
+                    <label for="username">Användarnamn:</label>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Användarnamn" />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Lösenord:</label>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Lösenord" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Logga in</button>
+            </form>
+        </div>
+    </div>
+</div>

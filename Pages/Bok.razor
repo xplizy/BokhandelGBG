@@ -1,0 +1,158 @@
+﻿@page "/Böcker"
+@using BokhandelGBG.Data;
+@using BokhandelGBG.Models;
+@using Microsoft.EntityFrameworkCore;
+@inject BokhandelDBContext dbcontext;
+
+<style>
+    .table {
+        width: 100%;
+        margin-top: 1rem;
+        margin-bottom: 5rem;
+    }
+
+        .table td,
+        .table th {
+            padding: .75rem;
+            vertical-align: top;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .table thead th {
+            vertical-align: bottom;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table tbody + tbody {
+            border-top: 2px solid #dee2e6;
+        }
+
+    .btn {
+        margin: .1rem;
+    }
+</style>
+
+<h3>Böcker</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ISBN13</th>
+            <th>Titel</th>
+            <th>Författare</th>
+            <th>Språk</th>
+            <th>Pris</th>
+            <th> </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var bok in bok)
+        {
+            <tr>
+                <td>@bok.Isbn13</td>
+                <td>@bok.Titel</td>
+                <td>@(bok.Författare != null ? $"{bok.Författare.Förnamn} {bok.Författare.Efternamn}" : "")</td>
+                <td>@bok.Språk</td>
+                <td>@bok.Pris kr</td>
+                <td><button class="btn btn-danger" @onclick="@(() => TaBortBok(bok.Isbn13))">Ta bort</button></td>
+            </tr>
+        }
+    </tbody>
+</table>
+<form @onsubmit="LäggTillBok">
+    <div class="form-group">
+        <label for="isbn13">ISBN13:</label>
+        <input type="text" class="form-control" id="isbn13" name="isbn13" placeholder="ISBN13" @bind="isbn13" />
+    </div>
+
+    <div class="form-group">
+        <label for="titel">Titel:</label>
+        <input type="text" class="form-control" id="titel" name="titel" placeholder="Titel" @bind="titel" />
+    </div>
+
+    <div class="form-group">
+        <label for="sprak">Språk:</label>
+        <input type="text" class="form-control" id="sprak" name="sprak" placeholder="Språk" @bind="sprak" />
+    </div>
+
+    <div class="form-group">
+        <label for="pris">Pris:</label>
+        <input type="text" class="form-control" id="pris" name="pris" placeholder="Pris" @bind="pris" />
+    </div>
+
+    <div class="form-group">
+        <label for="forfattare">Författare:</label>
+        <input type="text" class="form-control" id="forfattare" name="forfattare" placeholder="Författare" @bind="forfattare" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Lägg till bok</button>
+</form>
+
+
+@code {
+    BokhandelDBContext db = new BokhandelDBContext();
+
+    private List<Böcker> bok;
+    private string isbn13;
+    private string titel;
+    private string sprak;
+    private decimal pris;
+    private string forfattare;
+
+    protected override void OnInitialized()
+    {
+        bok = db.Böckers.Include(b => b.Författare).ToList();
+    }
+
+    private void LäggTillBok()
+    {
+        string isbn13Value = isbn13;
+        string titelValue = titel;
+        string sprakValue = sprak;
+        decimal prisValue = pris;
+        string forfattareValue = forfattare;
+
+        var befintligForfattare = db.Författares.FirstOrDefault(f => f.Efternamn.Equals(forfattare));
+        if (befintligForfattare == null)
+        {
+            befintligForfattare = new Författare
+                {
+                    Efternamn = forfattare
+                };
+            db.Författares.Add(befintligForfattare);
+        }
+
+        var nyBok = new Böcker
+            {
+                Isbn13 = isbn13,
+                Titel = titel,
+                Språk = sprak,
+                Pris = pris,
+                Författare = befintligForfattare
+            };
+
+        // Lägg till den nya boken i databasen
+        db.Böckers.Add(nyBok);
+        db.SaveChanges();
+
+        // Uppdatera listan av böcker
+        bok.Add(nyBok);
+
+        // Återställ formuläret
+        isbn13 = string.Empty;
+        titel = string.Empty;
+        sprak = string.Empty;
+        pris = 0;
+        forfattare = string.Empty;
+    }
+
+    private void TaBortBok(string isbn13)
+    {
+        var bokAttTaBort = bok.FirstOrDefault(b => b.Isbn13 == isbn13);
+        if (bokAttTaBort != null)
+        {
+            db.Böckers.Remove(bokAttTaBort);
+            db.SaveChanges();
+            bok.Remove(bokAttTaBort);
+        }
+    }
+}

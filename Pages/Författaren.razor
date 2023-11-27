@@ -1,0 +1,146 @@
+﻿@page "/författare"
+@using BokhandelGBG.Data;
+@using BokhandelGBG.Models;
+@using Microsoft.EntityFrameworkCore;
+@using Microsoft.JSInterop;
+@inject BokhandelDBContext dbcontext;
+@inject IJSRuntime JsRuntime
+
+<h3>Författare</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Lägg till författare</h5>
+                <form @onsubmit="LaggTillForfattare">
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Förnamn" @bind="@nyForenames" />
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Efternamn" @bind="@nySurnames" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Lägg till</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<br />
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Listan av författare</h5>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Förnamn</th>
+                            <th>Efternamn</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var forfattare in forfattare)
+                        {
+                            <tr>
+                                <td>@forfattare.Id</td>
+                                <td>@forfattare.Förnamn</td>
+                                <td>@forfattare.Efternamn</td>
+                                <td>
+                                    <button class="btn btn-primary" @onclick="@(() => VisaForfattarBocker(forfattare))">Visa böcker</button>
+                                    <button class="btn btn-danger" @onclick="@(() => TaBortForfattare(forfattare.Id))">Ta bort</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (visarForfattarBocker && aktuellForfattare != null && aktuellForfattare.Böckers != null)
+{
+    <h4>Böcker av @aktuellForfattare.Förnamn @aktuellForfattare.Efternamn</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ISBN13</th>
+                <th>Titel</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var bok in aktuellForfattare.Böckers)
+            {
+                <tr>
+                    <td>@bok.Isbn13</td>
+                    <td>@bok.Titel</td>
+                    
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    BokhandelDBContext db = new BokhandelDBContext();
+
+    private List<Författare> forfattare;
+    private string nyForenames;
+    private string nySurnames;
+    private bool visarForfattarBocker;
+    private Författare aktuellForfattare;
+
+    protected override void OnInitialized()
+    {
+        forfattare = db.Författares.ToList();
+    }
+
+    private async Task LaggTillForfattare()
+    {
+        var nyForfattare = new Författare
+            {
+                Förnamn = nyForenames,
+                Efternamn = nySurnames,
+            };
+
+        db.Författares.Add(nyForfattare);
+        await db.SaveChangesAsync();
+
+        forfattare = db.Författares.ToList();
+
+        nyForenames = string.Empty;
+        nySurnames = string.Empty;
+    }
+
+    private async Task VisaForfattarBocker(Författare forfattare)
+    {
+        aktuellForfattare = await db.Författares.Include(f => f.Böckers).FirstOrDefaultAsync(f => f.Id == forfattare.Id);
+        if (aktuellForfattare != null && aktuellForfattare.Böckers != null && aktuellForfattare.Böckers.Any())
+        {
+            visarForfattarBocker = true;
+        }
+        else
+        {
+            visarForfattarBocker = false;
+            await JsRuntime.InvokeVoidAsync("alert", $"Författaren {aktuellForfattare.Förnamn} {aktuellForfattare.Efternamn} har inga böcker!");
+        }
+    }
+
+    private async Task TaBortForfattare(int forfattareId)
+    {
+        var forfattareAttTaBort = db.Författares.FirstOrDefault(f => f.Id == forfattareId);
+        if (forfattareAttTaBort != null)
+        {
+            db.Författares.Remove(forfattareAttTaBort);
+            await db.SaveChangesAsync();
+
+            forfattare = db.Författares.ToList();
+        }
+    }
+}

@@ -1,0 +1,149 @@
+﻿@page "/Butiker"
+@using BokhandelGBG.Data;
+@using BokhandelGBG.Models;
+@using Microsoft.EntityFrameworkCore;
+@inject BokhandelDBContext dbcontext;
+
+<h3>Butiker</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Butik</th>
+            <th>Adress</th>
+            <th>Lagerstatus</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var butik in butiker)
+        {
+            <tr>
+                <td>@butik.Butiksnamn</td>
+                <td>@butik.Adress</td>
+                <td>
+                    <button class="btn btn-primary" @onclick="(() => VisaLagerStatus(butik))">Visa lagerstatus</button>
+                </td>
+            </tr>
+        }
+        <tr>
+            <td colspan="3" style="text-align: right;">
+                <button class="btn btn-primary" @onclick="(() => VisaTotalLagerStatus())">Visa lagerstatus för alla böcker</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+@if (visarLagerstatus)
+{
+    <h4>Lagerstatus för @valdButik.Butiksnamn</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ISBN13</th>
+                <th>Titel</th>
+                <th>Antal i lager</th>
+                <th>Flytta bok</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var lagerstatus in valdButik.LagerStatuses)
+            {
+                var bok = dbcontext.Böckers.FirstOrDefault(b => b.Isbn13 == lagerstatus.Isbn);
+                <tr>
+                    <td>@lagerstatus.Isbn</td>
+                    <td>@(bok != null ? bok.Titel : "")</td>
+                    <td>@lagerstatus.Antal</td>
+                    <td>
+                        <select @bind="selectedButik">
+                            @foreach (var butik in butiker.Where(b => b.Butiksnamn != valdButik.Butiksnamn))
+                            {
+                                <option value="@butik.Butiksnamn">@butik.Butiksnamn</option>
+                            }
+                        </select>
+                        <button class="btn btn-primary" @onclick="(() => FlyttaBok(valdButik, butiker.First(b => b.Butiksnamn == selectedButik), lagerstatus.Isbn))">Flytta bok</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (visarTotalLagerstatus && totalLagerStatus.Any())
+{
+    <h4>Total lagerstatus för alla böcker</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ISBN13</th>
+                <th>Titel</th>
+                <th>Antal i lager</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var lagerstatus in totalLagerStatus.GroupBy(ls => ls.Isbn))
+            {
+                var bok = dbcontext.Böckers.FirstOrDefault(b => b.Isbn13 == lagerstatus.Key);
+                <tr>
+                    <td>@lagerstatus.Key</td>
+                    <td>@(bok != null ? bok.Titel : "")</td>
+                    <td>@lagerstatus.Sum(ls => ls.Antal)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Butiker> butiker;
+    private Butiker valdButik;
+    private bool visarLagerstatus;
+    private bool visarTotalLagerstatus;
+    private List<LagerStatus> totalLagerStatus;
+    private string selectedButik;
+
+    protected override void OnInitialized()
+    {
+        butiker = dbcontext.Butikers.Include(b => b.LagerStatuses).ToList();
+    }
+
+    private void VisaLagerStatus(Butiker butik)
+    {
+        valdButik = butik;
+        visarLagerstatus = true;
+        visarTotalLagerstatus = false;
+    }
+
+    private void VisaTotalLagerStatus()
+    {
+        totalLagerStatus = new List<LagerStatus>();
+
+        foreach (var butik in butiker)
+        {
+            totalLagerStatus.AddRange(butik.LagerStatuses);
+        }
+
+        visarLagerstatus = false;
+        visarTotalLagerstatus = true;
+    }
+
+    private void FlyttaBok(Butiker franButik, Butiker tillButik, string isbn)
+    {
+        var lagerstatusFran = franButik.LagerStatuses.FirstOrDefault(ls => ls.Isbn == isbn);
+        var lagerstatusTill = tillButik.LagerStatuses.FirstOrDefault(ls => ls.Isbn == isbn);
+
+        if (lagerstatusFran != null && lagerstatusFran.Antal > 0)
+        {
+            lagerstatusFran.Antal--;
+
+            if (lagerstatusTill != null)
+            {
+                lagerstatusTill.Antal++;
+            }
+            else
+            {
+                tillButik.LagerStatuses.Add(new LagerStatus { Isbn = isbn, Antal = 1 });
+            }
+
+            dbcontext.SaveChanges();
+        }
+    }
+}
